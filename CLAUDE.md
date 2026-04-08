@@ -15,12 +15,15 @@ Ready-to-run examples in `examples/` that demonstrate the full video-to-docs pip
 | [`examples/video_to_docs.sh`](examples/video_to_docs.sh) | Shell/curl | Bash script, requires `curl` and `python3` for JSON parsing |
 | [`examples/video_to_docs.rb`](examples/video_to_docs.rb) | Ruby | Uses standard library only (`net/http`, `json`) |
 | [`examples/video_to_docs.php`](examples/video_to_docs.php) | PHP | Uses `file_get_contents` with stream context |
+| [`examples/video_to_docs.go`](examples/video_to_docs.go) | Go | Standard library only (`net/http`, `encoding/json`) |
+| [`examples/video_to_docs.java`](examples/video_to_docs.java) | Java 11+ | Uses `java.net.http.HttpClient` + Gson for JSON |
+| [`examples/video_to_docs.cs`](examples/video_to_docs.cs) | C# / .NET 6+ | Uses `HttpClient` + `System.Text.Json` |
 
 **Quick start (any language):**
 ```bash
 export DOCSIE_API_KEY="your_key"
 
-# Python
+# Python (also supports local file: python examples/video_to_docs.py ./video.mp4 sop)
 python examples/video_to_docs.py https://example.com/video.mp4 sop
 
 # Node.js
@@ -34,14 +37,18 @@ ruby examples/video_to_docs.rb https://example.com/video.mp4
 
 # PHP
 php examples/video_to_docs.php https://example.com/video.mp4
+
+# Go
+go run examples/video_to_docs.go https://example.com/video.mp4 sop
+
+# Java (requires Gson jar)
+javac -cp gson.jar examples/video_to_docs.java && java -cp examples:gson.jar video_to_docs https://example.com/video.mp4
+
+# C# / .NET
+dotnet script examples/video_to_docs.cs https://example.com/video.mp4
 ```
 
 Each example outputs: `analysis_result.md`, `transcription.txt`, `generated.md`, plus `.docx` and `.pdf` files.
-
-The Python example also supports local file upload:
-```bash
-python examples/video_to_docs.py path/to/video.mp4 sop
-```
 
 ## Postman Collections
 
