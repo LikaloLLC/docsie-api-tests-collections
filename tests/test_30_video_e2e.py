@@ -73,7 +73,7 @@ class TestVideoFileUpload:
 
         resp = api.post("/files/upload/", json={
             "temp_key": temp_key,
-            "type": "video",
+            "type": "file",
             "workspace": TEST_WORKSPACE_ID,
             "public": True,
         })
