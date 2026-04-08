@@ -122,7 +122,6 @@ Tests marked `xfail` represent known API bugs that have been reported:
 
 - **Language create via API** — returns serialized dict, view tries to call `.pk` on it
 - **Article create via API** — same pattern
-- **Files API** — uses session auth instead of API key auth
 
 ## Postman
 
