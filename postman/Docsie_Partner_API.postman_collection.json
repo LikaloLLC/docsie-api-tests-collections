@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "Docsie Partner API",
+    "description": "Partner API for Docsie documentation platform — content management, video-to-docs, AI chat, and credits.\n\nSet the `base_url` and `api_key` variables before using.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://staging.docsie.io/api_v2/003"},
+    {"key": "api_key", "value": "YOUR_API_KEY_HERE"},
+    {"key": "workspace_id", "value": ""},
+    {"key": "documentation_id", "value": ""},
+    {"key": "book_id", "value": ""},
+    {"key": "deployment_id", "value": ""},
+    {"key": "video_job_id", "value": ""},
+    {"key": "conversation_id", "value": ""}
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {"key": "key", "value": "Authorization"},
+      {"key": "value", "value": "Api-Key {{api_key}}"},
+      {"key": "in", "value": "header"}
+    ]
+  },
+  "item": [
+    {
+      "name": "Content",
+      "item": [
+        {
+          "name": "List workspaces",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/workspaces/"}}
+        },
+        {
+          "name": "Get workspace",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/workspaces/{{workspace_id}}/"}}
+        },
+        {
+          "name": "List documentation shelves",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/documentation/?workspace={{workspace_id}}"}}
+        },
+        {
+          "name": "Create documentation shelf",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/documentation/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"name\": \"My Documentation\", \"description\": \"Created via API\", \"workspace\": \"{{workspace_id}}\"}"}
+          }
+        },
+        {
+          "name": "List books",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/books/?documentation={{documentation_id}}"}}
+        },
+        {
+          "name": "Create book",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/books/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"name\": \"Getting Started\", \"description\": \"Intro guide\", \"documentation\": \"{{documentation_id}}\"}"}
+          }
+        },
+        {
+          "name": "List articles",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/articles/?book={{book_id}}"}}
+        },
+        {
+          "name": "List versions",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/versions/?book={{book_id}}"}}
+        },
+        {
+          "name": "List languages",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/languages/?book={{book_id}}"}}
+        },
+        {
+          "name": "List snippets",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/snippets/"}}
+        }
+      ]
+    },
+    {
+      "name": "Video to Docs",
+      "item": [
+        {
+          "name": "Estimate cost",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/video-to-docs/estimate/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"quality\": \"standard\", \"duration_minutes\": 10}"}
+          }
+        },
+        {
+          "name": "Submit video (URL)",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/video-to-docs/submit/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"video_url\": \"https://www.youtube.com/watch?v=dQw4w9WgXcQ\", \"quality\": \"draft\", \"language\": \"english\", \"doc_style\": \"guide\", \"rewrite_instructions\": \"\", \"auto_generate\": true, \"workspace_id\": \"{{workspace_id}}\"}"}
+          }
+        },
+        {
+          "name": "Submit video (file_id)",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/video-to-docs/submit/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"file_id\": \"YOUR_FILE_ID\", \"quality\": \"standard\", \"language\": \"english\", \"doc_style\": \"sop\", \"rewrite_instructions\": \"Write for compliance officers\", \"template_instruction\": \"1. Purpose\\n2. Scope\\n3. Procedure\\n4. Records\", \"auto_generate\": true, \"workspace_id\": \"{{workspace_id}}\"}"}
+          }
+        },
+        {
+          "name": "List video jobs",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/video-to-docs/"}}
+        },
+        {
+          "name": "Get job status",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/video-to-docs/{{video_job_id}}/status/"}}
+        },
+        {
+          "name": "Get job result",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/video-to-docs/{{video_job_id}}/result/"}}
+        },
+        {
+          "name": "Generate (AI rewrite)",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/video-to-docs/{{video_job_id}}/generate/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"doc_style\": \"sop\", \"rewrite_instructions\": \"Formal tone, include responsibilities\", \"template_instruction\": \"1. Purpose\\n2. Scope\\n3. Procedure\", \"book_title\": \"My SOP\"}"}
+          }
+        },
+        {
+          "name": "Cancel job",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/video-to-docs/{{video_job_id}}/cancel/"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deployment Chat",
+      "item": [
+        {
+          "name": "Ask question (sync)",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/deployments/{{deployment_id}}/chat/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"question\": \"What is this documentation about?\", \"stream\": false}"}
+          }
+        },
+        {
+          "name": "Ask question (streaming SSE)",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/deployments/{{deployment_id}}/chat/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"question\": \"How do I get started?\", \"stream\": true}"}
+          }
+        },
+        {
+          "name": "Follow-up (multi-turn)",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/deployments/{{deployment_id}}/chat/"},
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"question\": \"Can you explain that in more detail?\", \"stream\": false, \"conversation_id\": \"{{conversation_id}}\"}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Credits",
+      "item": [
+        {
+          "name": "Get credit balance",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/credits/balance/"}}
+        },
+        {
+          "name": "Get credit usage history",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/credits/usage/"}}
+        },
+        {
+          "name": "Filter usage by type",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/credits/usage/?transaction_type=deduct_video"}}
+        }
+      ]
+    },
+    {
+      "name": "Deployments",
+      "item": [
+        {
+          "name": "List deployments",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/deployments/"}}
+        },
+        {
+          "name": "Get deployment",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/deployments/{{deployment_id}}/"}}
+        },
+        {
+          "name": "Refresh deployment cache",
+          "request": {
+            "method": "POST",
+            "url": {"raw": "{{base_url}}/deployments/{{deployment_id}}/refresh/"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "List jobs",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/jobs/"}}
+        },
+        {
+          "name": "Get job",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/jobs/{{video_job_id}}/"}}
+        }
+      ]
+    }
+  ]
+}
