@@ -4,6 +4,54 @@
 
 This is an integration test suite for the Docsie Partner API. Tests run against a live Docsie instance using pytest + requests. The suite covers the full API surface: content CRUD, video-to-docs pipeline, AI chat, credits, files, deployments, and auth.
 
+## Code Examples
+
+Ready-to-run examples in `examples/` that demonstrate the full video-to-docs pipeline:
+
+| File | Language | Description |
+|------|----------|-------------|
+| [`examples/video_to_docs.py`](examples/video_to_docs.py) | Python | Full pipeline with file upload support. `pip install requests` |
+| [`examples/video_to_docs.js`](examples/video_to_docs.js) | Node.js | Zero dependencies (uses built-in `http`/`https`) |
+| [`examples/video_to_docs.sh`](examples/video_to_docs.sh) | Shell/curl | Bash script, requires `curl` and `python3` for JSON parsing |
+| [`examples/video_to_docs.rb`](examples/video_to_docs.rb) | Ruby | Uses standard library only (`net/http`, `json`) |
+| [`examples/video_to_docs.php`](examples/video_to_docs.php) | PHP | Uses `file_get_contents` with stream context |
+
+**Quick start (any language):**
+```bash
+export DOCSIE_API_KEY="your_key"
+
+# Python
+python examples/video_to_docs.py https://example.com/video.mp4 sop
+
+# Node.js
+node examples/video_to_docs.js https://example.com/video.mp4 guide
+
+# Shell
+./examples/video_to_docs.sh https://example.com/video.mp4 tutorial
+
+# Ruby
+ruby examples/video_to_docs.rb https://example.com/video.mp4
+
+# PHP
+php examples/video_to_docs.php https://example.com/video.mp4
+```
+
+Each example outputs: `analysis_result.md`, `transcription.txt`, `generated.md`, plus `.docx` and `.pdf` files.
+
+The Python example also supports local file upload:
+```bash
+python examples/video_to_docs.py path/to/video.mp4 sop
+```
+
+## Postman Collections
+
+| Collection | Description |
+|-----------|-------------|
+| [`postman/Docsie_Partner_API.postman_collection.json`](postman/Docsie_Partner_API.postman_collection.json) | All endpoints, manual testing |
+| [`postman/Video_to_Docs_E2E.postman_collection.json`](postman/Video_to_Docs_E2E.postman_collection.json) | Automated E2E pipeline with test scripts (8 steps) |
+
+The E2E collection has test scripts that validate responses and chain job IDs between steps. Set `base_url`, `api_key`, `video_url` in collection variables, then run with Collection Runner.
+
 ## How to Run
 
 ```bash
