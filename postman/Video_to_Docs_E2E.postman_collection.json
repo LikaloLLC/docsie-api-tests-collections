@@ -1,0 +1,358 @@
+{
+  "info": {
+    "name": "Video-to-Docs E2E Pipeline",
+    "description": "Automated end-to-end test for the Docsie video-to-docs API.\n\nRun with Postman Collection Runner — requests execute in order, each step captures IDs and validates responses.\n\n**Setup:**\n1. Set `base_url` (e.g., `https://staging.docsie.io/api_v2/003`)\n2. Set `api_key` (your partner API key)\n3. Set `video_url` (direct link to an MP4 file)\n4. Run the collection in order\n\n**Flow:** Estimate → Submit → Poll → Result → Generate (MD+DOCX+PDF) → Poll Generate → Poll Exports",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "https://staging.docsie.io/api_v2/003", "type": "string"},
+    {"key": "api_key", "value": "YOUR_API_KEY_HERE", "type": "string"},
+    {"key": "video_url", "value": "https://example.com/video.mp4", "type": "string"},
+    {"key": "quality", "value": "draft", "type": "string"},
+    {"key": "doc_style", "value": "sop", "type": "string"},
+    {"key": "job_id", "value": "", "type": "string"},
+    {"key": "generate_job_id", "value": "", "type": "string"},
+    {"key": "docx_job_id", "value": "", "type": "string"},
+    {"key": "pdf_job_id", "value": "", "type": "string"},
+    {"key": "session_id", "value": "", "type": "string"}
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {"key": "key", "value": "Authorization", "type": "string"},
+      {"key": "value", "value": "Api-Key {{api_key}}", "type": "string"},
+      {"key": "in", "value": "header", "type": "string"}
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Estimate credit cost",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {"raw": "{{base_url}}/video-to-docs/estimate/", "host": ["{{base_url}}"], "path": ["video-to-docs", "estimate", ""]},
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quality\": \"{{quality}}\",\n  \"duration_minutes\": 5\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "",
+              "const data = pm.response.json();",
+              "pm.test('Has credit estimate', () => {",
+              "    pm.expect(data).to.have.property('credits_per_minute');",
+              "    pm.expect(data).to.have.property('balance');",
+              "    pm.expect(data.balance.total_available).to.be.above(0);",
+              "});",
+              "",
+              "pm.test('Has quality tiers', () => {",
+              "    pm.expect(data).to.have.property('video_quality_tiers');",
+              "    pm.expect(data.video_quality_tiers).to.have.property('draft');",
+              "    pm.expect(data.video_quality_tiers).to.have.property('standard');",
+              "});",
+              "",
+              "if (data.has_sufficient_credits === false) {",
+              "    console.warn('WARNING: Insufficient credits. Pipeline will fail at submit.');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Submit video job",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {"raw": "{{base_url}}/video-to-docs/submit/", "host": ["{{base_url}}"], "path": ["video-to-docs", "submit", ""]},
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"video_url\": \"{{video_url}}\",\n  \"quality\": \"{{quality}}\",\n  \"language\": \"english\",\n  \"doc_style\": \"{{doc_style}}\",\n  \"rewrite_instructions\": \"Write for a compliance officer audience. Use formal tone.\",\n  \"auto_generate\": false\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 202', () => pm.response.to.have.status(202));",
+              "",
+              "const data = pm.response.json();",
+              "pm.test('Has job_id', () => {",
+              "    pm.expect(data).to.have.property('job_id');",
+              "    pm.expect(data.status).to.eql('started');",
+              "});",
+              "",
+              "pm.collectionVariables.set('job_id', data.job_id);",
+              "console.log('Job ID:', data.job_id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Poll analysis status (run repeatedly)",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{base_url}}/video-to-docs/{{job_id}}/status/", "host": ["{{base_url}}"], "path": ["video-to-docs", "{{job_id}}", "status", ""]}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "",
+              "const data = pm.response.json();",
+              "console.log('Job status:', data.status, '| can_poll:', data.can_poll);",
+              "",
+              "if (data.status === 'done') {",
+              "    pm.test('Analysis complete', () => pm.expect(data.status).to.eql('done'));",
+              "} else if (data.status === 'failed') {",
+              "    pm.test('Analysis should not fail', () => pm.expect(data.status).to.not.eql('failed'));",
+              "} else {",
+              "    pm.test('Still processing — re-run this request in 15s', () => {",
+              "        pm.expect(data.can_poll).to.be.true;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Get analysis result",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{base_url}}/video-to-docs/{{job_id}}/result/", "host": ["{{base_url}}"], "path": ["video-to-docs", "{{job_id}}", "result", ""]}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "",
+              "const data = pm.response.json();",
+              "",
+              "pm.test('Has markdown', () => {",
+              "    pm.expect(data.markdown).to.be.a('string');",
+              "    pm.expect(data.markdown.length).to.be.above(100);",
+              "});",
+              "",
+              "pm.test('Has transcription', () => {",
+              "    pm.expect(data.transcription).to.be.a('string');",
+              "    pm.expect(data.transcription.length).to.be.above(10);",
+              "});",
+              "",
+              "pm.test('Has sections', () => {",
+              "    pm.expect(data.sections).to.be.an('array');",
+              "    pm.expect(data.sections.length).to.be.above(0);",
+              "    pm.expect(data.sections[0]).to.have.property('title');",
+              "    pm.expect(data.sections[0]).to.have.property('content');",
+              "});",
+              "",
+              "pm.test('Has images', () => {",
+              "    pm.expect(data.images).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Has session_id', () => {",
+              "    pm.expect(data.session_id).to.be.a('string');",
+              "});",
+              "",
+              "pm.collectionVariables.set('session_id', data.session_id);",
+              "console.log('Session ID:', data.session_id);",
+              "console.log('Markdown length:', data.markdown.length);",
+              "console.log('Sections:', data.sections.length);",
+              "console.log('Images:', data.images.length);",
+              "console.log('Credits charged:', data.credits_charged);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Trigger AI rewrite (MD + DOCX + PDF)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "url": {"raw": "{{base_url}}/video-to-docs/{{job_id}}/generate/", "host": ["{{base_url}}"], "path": ["video-to-docs", "{{job_id}}", "generate", ""]},
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"doc_style\": \"{{doc_style}}\",\n  \"rewrite_instructions\": \"Write a formal Standard Operating Procedure. Include purpose, scope, responsibilities, and procedure sections.\",\n  \"template_instruction\": \"1. Purpose\\n2. Scope\\n3. Responsibilities\\n4. Procedure\\n   4.1 Prerequisites\\n   4.2 Step-by-step instructions\\n5. Records and Documentation\",\n  \"target_language\": \"english\",\n  \"book_title\": \"API Test SOP\",\n  \"output_formats\": [\"md\", \"docx\", \"pdf\"]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 202', () => pm.response.to.have.status(202));",
+              "",
+              "const data = pm.response.json();",
+              "",
+              "pm.test('Has generate_job_id', () => {",
+              "    pm.expect(data).to.have.property('generate_job_id');",
+              "    pm.expect(data.status).to.eql('started');",
+              "    pm.expect(data.doc_style).to.eql(pm.collectionVariables.get('doc_style'));",
+              "});",
+              "",
+              "pm.collectionVariables.set('generate_job_id', data.generate_job_id);",
+              "console.log('Generate job ID:', data.generate_job_id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Poll generate job (run repeatedly)",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{base_url}}/jobs/{{generate_job_id}}/", "host": ["{{base_url}}"], "path": ["jobs", "{{generate_job_id}}", ""]}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "",
+              "const data = pm.response.json();",
+              "const result = data.result || {};",
+              "console.log('Generate status:', data.status);",
+              "",
+              "if (data.status === 'done') {",
+              "    pm.test('Has rewritten markdown', () => {",
+              "        pm.expect(result.markdown).to.be.a('string');",
+              "        pm.expect(result.markdown.length).to.be.above(100);",
+              "    });",
+              "",
+              "    pm.test('Has title', () => {",
+              "        pm.expect(result.title).to.be.a('string');",
+              "    });",
+              "",
+              "    pm.test('Has word counts', () => {",
+              "        pm.expect(result.input_word_count).to.be.above(0);",
+              "        pm.expect(result.output_word_count).to.be.above(0);",
+              "    });",
+              "",
+              "    pm.test('Has export job IDs', () => {",
+              "        pm.expect(result.exports).to.be.an('object');",
+              "    });",
+              "",
+              "    if (result.exports && result.exports.docx) {",
+              "        pm.collectionVariables.set('docx_job_id', result.exports.docx.job_id);",
+              "        console.log('DOCX job ID:', result.exports.docx.job_id);",
+              "    }",
+              "    if (result.exports && result.exports.pdf) {",
+              "        pm.collectionVariables.set('pdf_job_id', result.exports.pdf.job_id);",
+              "        console.log('PDF job ID:', result.exports.pdf.job_id);",
+              "    }",
+              "",
+              "    console.log('Title:', result.title);",
+              "    console.log('Words:', result.input_word_count, '→', result.output_word_count);",
+              "    console.log('Elapsed:', result.elapsed_seconds, 's');",
+              "} else if (data.status === 'failed') {",
+              "    pm.test('Generate should not fail', () => {",
+              "        console.log('Error:', JSON.stringify(result.error));",
+              "        pm.expect(data.status).to.not.eql('failed');",
+              "    });",
+              "} else {",
+              "    pm.test('Still generating — re-run in 15s', () => true);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Poll DOCX export (run repeatedly)",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{base_url}}/jobs/{{docx_job_id}}/", "host": ["{{base_url}}"], "path": ["jobs", "{{docx_job_id}}", ""]}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('docx_job_id')) {",
+              "    pm.test.skip('No DOCX export job');",
+              "    return;",
+              "}",
+              "",
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "",
+              "const data = pm.response.json();",
+              "const result = data.result || {};",
+              "",
+              "if (data.status === 'done') {",
+              "    pm.test('Has download URL', () => {",
+              "        pm.expect(result.url).to.be.a('string');",
+              "        pm.expect(result.url).to.include('s3.amazonaws.com');",
+              "    });",
+              "",
+              "    pm.test('Has filename', () => {",
+              "        pm.expect(result.filename).to.include('.docx');",
+              "    });",
+              "",
+              "    console.log('DOCX URL:', result.url.substring(0, 120) + '...');",
+              "} else if (data.status === 'failed') {",
+              "    pm.test('DOCX export should not fail', () => pm.expect(data.status).to.not.eql('failed'));",
+              "} else {",
+              "    pm.test('Still exporting — re-run in 10s', () => true);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Poll PDF export (run repeatedly)",
+      "request": {
+        "method": "GET",
+        "url": {"raw": "{{base_url}}/jobs/{{pdf_job_id}}/", "host": ["{{base_url}}"], "path": ["jobs", "{{pdf_job_id}}", ""]}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (!pm.collectionVariables.get('pdf_job_id')) {",
+              "    pm.test.skip('No PDF export job');",
+              "    return;",
+              "}",
+              "",
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "",
+              "const data = pm.response.json();",
+              "const result = data.result || {};",
+              "",
+              "if (data.status === 'done') {",
+              "    pm.test('Has download URL', () => {",
+              "        pm.expect(result.url).to.be.a('string');",
+              "        pm.expect(result.url).to.include('s3.amazonaws.com');",
+              "    });",
+              "",
+              "    pm.test('Has filename', () => {",
+              "        pm.expect(result.filename).to.include('.pdf');",
+              "    });",
+              "",
+              "    console.log('PDF URL:', result.url.substring(0, 120) + '...');",
+              "} else if (data.status === 'failed') {",
+              "    pm.test('PDF export should not fail', () => pm.expect(data.status).to.not.eql('failed'));",
+              "} else {",
+              "    pm.test('Still exporting — re-run in 10s', () => true);",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
